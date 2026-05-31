@@ -1,0 +1,578 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { fetchJSON } from "../../lib/api";
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+
+let gameData: any = null;
+let reviews: any[] = [];
+let reviewAvg: string | null = null;
+let reviewTotal = 0;
+
+try {
+  const res = await fetchJSON("/api/games/" + slug);
+  gameData = res?.data ?? null;
+} catch (e) {}
+
+if (gameData) {
+  try {
+    const revRes = await fetchJSON("/api/reviews/game/" + gameData.id);
+    reviews     = revRes?.data ?? [];
+    reviewAvg   = revRes?.average ?? null;
+    reviewTotal = revRes?.total ?? 0;
+  } catch (e) {}
+}
+
+const g = gameData;
+
+function formatDate(dateStr: string | null): string | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" });
+}
+
+const mediaItems: { type: string; url: string; poster?: string }[] = [];
+if (g?.rawg_video) mediaItems.push({ type: 'video', url: g.rawg_video, poster: g.cover_url ?? undefined });
+if (g?.cover_url)  mediaItems.push({ type: 'image', url: g.cover_url });
+if (g?.rawg_screenshots && Array.isArray(g.rawg_screenshots)) {
+  for (const s of g.rawg_screenshots) mediaItems.push({ type: 'image', url: s });
+}
+
+const pageTitle = g ? "GameVault | " + g.title : "GameVault | Juego no encontrado";
+const mediaJson = JSON.stringify(mediaItems);
+const descFull  = g?.rawg_description || g?.description || "";
+const descShort = descFull.length > 350 ? descFull.slice(0, 350) + "..." : descFull;
+const hasMore   = descFull.length > 350;
+---
+
+<Layout title={pageTitle}>
+  <style>
+    html.light #gallery-prev,
+    html.light #gallery-next {
+      background: rgba(0,0,0,0.6) !important;
+      border-color: rgba(255,255,255,0.2) !important;
+      color: white !important;
+    }
+    html.light #gallery-prev:hover,
+    html.light #gallery-next:hover { background: #7c3aed !important; }
+    html.light .rating-btn {
+      border-color: #d4d4d8 !important;
+      color: #52525b !important;
+    }
+  </style>
+
+  <div class="min-h-screen bg-zinc-950 text-zinc-100">
+
+    {!g && (
+      <div class="max-w-2xl mx-auto px-6 py-32 text-center">
+        <p class="text-6xl mb-6">🎮</p>
+        <h1 class="text-3xl font-bold text-white mb-8">Juego no encontrado</h1>
+        <a href="/games" class="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white font-semibold px-6 py-3 rounded-xl transition-all text-sm">← Volver al catálogo</a>
+      </div>
+    )}
+
+    {g && (
+      <div>
+        <div class="border-b border-zinc-800/60">
+          <div class="max-w-6xl mx-auto px-6 py-4">
+            <a href="/games" class="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-violet-400 transition-colors">← Volver al catálogo</a>
+          </div>
+        </div>
+
+        <div class="max-w-6xl mx-auto px-6 py-10">
+
+          <div class="mb-8">
+            {g.category && (
+              <a href={"/categories/" + g.category.slug}
+                class="inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full border mb-4 tracking-wide hover:opacity-80 transition-opacity"
+                style={"color:" + g.category.accentColor + ";background:" + g.category.bgColor + ";border-color:" + g.category.borderColor}>
+                {g.category.name}
+              </a>
+            )}
+            <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-3 leading-tight">{g.title}</h1>
+            <div class="flex flex-wrap items-center gap-4 text-sm text-zinc-500">
+              {g.release_date && (
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  Fecha de lanzamiento <strong class="text-zinc-300">{formatDate(g.release_date)}</strong>
+                </span>
+              )}
+              {g.rawg_rating && (
+                <span class="flex items-center gap-1.5 text-yellow-400 font-bold">
+                  ★ {g.rawg_rating}
+                  <span class="text-zinc-500 font-normal">en RAWG</span>
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start mb-16">
+
+            <!-- GALERÍA -->
+            <div class="space-y-3">
+              <div class="relative rounded-2xl overflow-hidden bg-zinc-900 border border-zinc-800 w-full aspect-video" id="gallery-main">
+                <div id="gallery-slot" class="w-full h-full"></div>
+                {mediaItems.length > 1 && (
+                  <>
+                    <button id="gallery-prev" class="cursor-pointer absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-zinc-900/80 border border-zinc-700 text-white flex items-center justify-center hover:bg-violet-600 transition-all z-10">
+                      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+                    <button id="gallery-next" class="cursor-pointer absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-zinc-900/80 border border-zinc-700 text-white flex items-center justify-center hover:bg-violet-600 transition-all z-10">
+                      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+                    <div class="absolute bottom-3 right-3 bg-zinc-900/80 text-zinc-300 text-xs font-semibold px-2.5 py-1 rounded-full border border-zinc-700">
+                      <span id="gallery-counter">1</span> / {mediaItems.length}
+                    </div>
+                  </>
+                )}
+              </div>
+              {mediaItems.length > 1 && (
+                <div class="flex gap-2 overflow-x-auto pb-1">
+                  {mediaItems.map((item, i) => (
+                    <button data-idx={String(i)}
+                      class={`gallery-thumb flex-shrink-0 w-20 h-14 rounded-xl overflow-hidden bg-zinc-800 border-2 transition-all cursor-pointer hover:border-violet-400 ${i === 0 ? 'border-violet-500' : 'border-transparent'}`}>
+                      {item.type === 'video' ? (
+                        <div class="w-full h-full bg-zinc-700 flex items-center justify-center relative">
+                          {item.poster && <img src={item.poster} alt="video" class="w-full h-full object-cover opacity-50" />}
+                          <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="w-6 h-6 bg-violet-600 rounded-full flex items-center justify-center">
+                              <svg class="w-3 h-3 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <img src={item.url} alt={`media ${i}`} class="w-full h-full object-cover" loading="lazy" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <!-- INFO -->
+            <div class="space-y-5">
+              {descFull && (
+                <div>
+                  <p id="desc-short" class="text-zinc-300 leading-relaxed text-[15px]">{descShort}</p>
+                  <p id="desc-full" class="hidden text-zinc-300 leading-relaxed text-[15px] whitespace-pre-line">{descFull}</p>
+                  {hasMore && (
+                    <button id="btn-expand" class="mt-3 text-violet-400 hover:text-violet-300 text-sm font-semibold transition-colors flex items-center gap-1">
+                      Ver más
+                      <svg id="expand-icon" class="w-4 h-4 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              )}
+              {g.rawg_platforms && (
+                <div class="pt-4 border-t border-zinc-800">
+                  <p class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Plataformas</p>
+                  <div class="flex flex-wrap gap-2">
+                    {g.rawg_platforms.split(', ').map((plat: string) => (
+                      <span class="text-xs bg-zinc-800 border border-zinc-700 text-zinc-300 px-2.5 py-1 rounded-lg">{plat}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div class="pt-4 border-t border-zinc-800 flex flex-wrap gap-3">
+                <button id="btn-favorite" class="inline-flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 font-semibold px-4 py-2.5 rounded-xl text-sm transition-all cursor-pointer">
+                  <svg id="icon-heart" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                  <span id="btn-favorite-label">Añadir a favoritos</span>
+                </button>
+                <a href="#review-form" class="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition-all">
+                  Escribir reseña
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- RESEÑAS -->
+          <div class="border-t border-zinc-800 pt-12">
+            <div class="mb-8">
+              <h2 class="text-2xl font-bold text-white">Reseñas de la comunidad</h2>
+              {reviewTotal > 0 && (
+                <p class="text-zinc-500 text-sm mt-1">
+                  {reviewTotal} reseña{reviewTotal !== 1 ? 's' : ''} · Nota media:
+                  <span class="text-yellow-400 font-bold ml-1">★ {reviewAvg}</span>
+                </p>
+              )}
+            </div>
+
+            {reviews.length === 0 ? (
+              <div class="text-center py-12 border border-dashed border-zinc-800 rounded-2xl mb-10">
+                <p class="text-4xl mb-3">💬</p>
+                <p class="text-zinc-400 font-medium">Sé el primero en reseñar este juego</p>
+                <p class="text-zinc-600 text-sm mt-1">Comparte tu opinión con la comunidad</p>
+              </div>
+            ) : (
+              <div class="space-y-4 mb-10" id="reviews-list">
+                {reviews.map((review: any) => (
+                  <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5" data-review-id={String(review.id)} data-review-author={String(review.user_id)}>
+                    <div class="flex items-center justify-between mb-3">
+                      <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center text-white font-bold text-sm">
+                          {review.username[0].toUpperCase()}
+                        </div>
+                        <div>
+                          <span class="font-semibold text-zinc-200 text-sm">{review.username}</span>
+                          {review.updated_at && review.updated_at !== review.created_at && (
+                            <span class="text-zinc-600 text-xs ml-2">(editada)</span>
+                          )}
+                        </div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-yellow-400 font-bold">★ {review.rating}/10</span>
+                        <span class="text-zinc-600 text-xs">{new Date(review.created_at).toLocaleDateString('es-ES')}</span>
+                      </div>
+                    </div>
+                    {review.content && <p class="text-zinc-400 text-sm leading-relaxed mb-4">{review.content}</p>}
+                    <div class="flex items-center justify-between pt-3 border-t border-zinc-800/60">
+                      <div class="flex items-center gap-3">
+                        <button class="cursor-pointer like-btn flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all"
+                          data-review={String(review.id)} data-type="like"
+                          style={review.userVote === 1 ? "background:rgba(34,197,94,0.15);border-color:rgba(34,197,94,0.4);color:#22c55e" : "background:rgba(113,113,122,0.1);border-color:rgba(113,113,122,0.2);color:#71717a"}>
+                          👍 <span class="like-count">{review.likes ?? 0}</span>
+                        </button>
+                        <button class="cursor-pointer like-btn flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all"
+                          data-review={String(review.id)} data-type="dislike"
+                          style={review.userVote === 0 ? "background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.4);color:#ef4444" : "background:rgba(113,113,122,0.1);border-color:rgba(113,113,122,0.2);color:#71717a"}>
+                          👎 <span class="dislike-count">{review.dislikes ?? 0}</span>
+                        </button>
+                      </div>
+                      <div class="review-actions flex items-center gap-2 hidden">
+                        <button class="cursor-pointer edit-review-btn text-xs text-violet-400 hover:text-violet-300 font-semibold px-2 py-1"
+                          data-review={String(review.id)} data-rating={String(review.rating)} data-content={review.content ?? ''}>
+                          Editar
+                        </button>
+                        <button class="cursor-pointer delete-review-btn text-xs text-red-400 hover:text-red-300 font-semibold px-2 py-1"
+                          data-review={String(review.id)}>
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                    <div class="edit-form hidden mt-4 pt-4 border-t border-zinc-800 space-y-3">
+                      <div class="flex gap-1.5 flex-wrap">
+                        {[1,2,3,4,5,6,7,8,9,10].map((n) => (
+                          <button type="button" data-val={String(n)}
+                            class={`edit-rating-btn cursor-pointer w-7 h-7 rounded-lg text-xs font-bold border transition-all ${n <= review.rating ? 'bg-yellow-500/20 border-yellow-500 text-yellow-400' : 'bg-zinc-800 border-zinc-700 text-zinc-500'}`}>
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                      <textarea class="edit-content w-full bg-zinc-800 border border-zinc-700 rounded-xl text-sm text-zinc-100 px-4 py-3 outline-none focus:border-violet-500 resize-none" rows={3}>{review.content ?? ''}</textarea>
+                      <div class="flex gap-2 items-center">
+                        <button class="save-edit-btn bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2 rounded-xl text-xs" data-review={String(review.id)}>Guardar</button>
+                        <button class="cancel-edit-btn text-zinc-400 hover:text-zinc-300 text-xs font-semibold px-3 py-2">Cancelar</button>
+                        <span class="edit-msg text-xs text-zinc-500"></span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div id="review-form" class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+              <h3 class="text-lg font-bold text-white mb-4">Escribe tu reseña</h3>
+              <div id="review-auth-msg" class="hidden">
+                <p class="text-zinc-400 text-sm mb-3">Necesitas estar registrado para escribir una reseña.</p>
+                <div class="flex gap-3">
+                  <a href="/login" class="bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2 rounded-xl text-sm">Iniciar sesión</a>
+                  <a href="/register" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold px-4 py-2 rounded-xl text-sm border border-zinc-700">Registrarse</a>
+                </div>
+              </div>
+              <form id="review-form-inner" class="hidden space-y-4">
+                <div>
+                  <label class="text-sm font-semibold text-zinc-400 mb-2 block">Nota (1-10)</label>
+                  <div class="flex gap-2 flex-wrap" id="rating-stars">
+                    {[1,2,3,4,5,6,7,8,9,10].map((n) => (
+                      <button type="button" data-val={String(n)}
+                        class="rating-btn cursor-pointer w-8 h-8 rounded-lg border border-zinc-700 text-zinc-500 bg-transparent text-xs font-bold transition-all hover:bg-yellow-500/20 hover:border-yellow-500 hover:text-yellow-400">
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label class="text-sm font-semibold text-zinc-400 mb-2 block">Tu opinión <span class="text-zinc-600 font-normal">(opcional)</span></label>
+                  <textarea id="review-content" rows={4} placeholder="Cuéntanos qué te pareció el juego..."
+                    class="w-full bg-zinc-800 border border-zinc-700 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 px-4 py-3 outline-none focus:border-violet-500 resize-none transition-all"></textarea>
+                </div>
+                <div class="flex items-center gap-3">
+                  <button type="submit" class="bg-violet-600 hover:bg-violet-500 text-white font-semibold px-6 py-2.5 rounded-xl text-sm">Publicar reseña</button>
+                  <span id="review-msg" class="text-sm text-zinc-500"></span>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+</Layout>
+
+<script define:vars={{ mediaJson, gameId: gameData?.id }}>
+  // ── GALERÍA ──────────────────────────────────────────────
+  const media   = JSON.parse(mediaJson || '[]');
+  let current   = 0;
+  const slot    = document.getElementById('gallery-slot');
+  const counter = document.getElementById('gallery-counter');
+
+  function renderMedia(idx) {
+    if (!slot || !media[idx]) return;
+    const item = media[idx];
+    const oldVideo = slot.querySelector('video');
+    if (oldVideo) oldVideo.pause();
+    slot.innerHTML = item.type === 'video'
+      ? `<video src="${item.url}" ${item.poster ? `poster="${item.poster}"` : ''} class="w-full h-full object-cover" controls></video>`
+      : `<img src="${item.url}" alt="media ${idx}" class="w-full h-full object-cover" />`;
+    if (counter) counter.textContent = String(idx + 1);
+    document.querySelectorAll('.gallery-thumb').forEach((btn, i) => {
+      btn.classList.toggle('border-violet-500', i === idx);
+      btn.classList.toggle('border-transparent', i !== idx);
+    });
+    current = idx;
+  }
+
+  if (media.length > 0) renderMedia(0);
+  document.getElementById('gallery-prev')?.addEventListener('click', () => renderMedia((current - 1 + media.length) % media.length));
+  document.getElementById('gallery-next')?.addEventListener('click', () => renderMedia((current + 1) % media.length));
+  document.querySelectorAll('.gallery-thumb').forEach(btn => {
+    btn.addEventListener('click', () => renderMedia(parseInt(btn.dataset.idx || '0')));
+  });
+
+  // ── VER MÁS ──────────────────────────────────────────────
+  const btnExpand   = document.getElementById('btn-expand');
+  const descShortEl = document.getElementById('desc-short');
+  const descFullEl  = document.getElementById('desc-full');
+  const expandIcon  = document.getElementById('expand-icon');
+  let expanded = false;
+
+  btnExpand?.addEventListener('click', () => {
+    expanded = !expanded;
+    descShortEl?.classList.toggle('hidden', expanded);
+    descFullEl?.classList.toggle('hidden', !expanded);
+    if (expandIcon) expandIcon.style.transform = expanded ? 'rotate(180deg)' : 'rotate(0deg)';
+    if (btnExpand.firstChild) btnExpand.firstChild.textContent = expanded ? 'Ver menos ' : 'Ver más ';
+  });
+
+  // ── FAVORITOS ────────────────────────────────────────────
+  const token     = localStorage.getItem('gv-token');
+  const btnFav    = document.getElementById('btn-favorite');
+  const iconHeart = document.getElementById('icon-heart');
+  const btnLabel  = document.getElementById('btn-favorite-label');
+  let isFav = false;
+
+  async function checkFavorite() {
+    if (!token || !gameId) return;
+    try {
+      const res  = await fetch(`/api/favorites/check/${gameId}`, { headers: { Authorization: 'Bearer ' + token } });
+      const data = await res.json();
+      isFav = data.isFavorite;
+      updateFavBtn();
+    } catch (e) {}
+  }
+
+  function updateFavBtn() {
+    if (!btnFav) return;
+    if (isFav) {
+      btnFav.classList.add('bg-red-500/10', 'border-red-500/50', 'text-red-400');
+      btnFav.classList.remove('bg-zinc-800', 'border-zinc-700', 'text-zinc-300');
+      if (iconHeart) iconHeart.setAttribute('fill', 'currentColor');
+      if (btnLabel) btnLabel.textContent = 'En favoritos';
+    } else {
+      btnFav.classList.remove('bg-red-500/10', 'border-red-500/50', 'text-red-400');
+      btnFav.classList.add('bg-zinc-800', 'border-zinc-700', 'text-zinc-300');
+      if (iconHeart) iconHeart.setAttribute('fill', 'none');
+      if (btnLabel) btnLabel.textContent = 'Añadir a favoritos';
+    }
+  }
+
+  btnFav?.addEventListener('click', async () => {
+    if (!token) { window.location.href = '/login'; return; }
+    try {
+      if (isFav) {
+        await fetch(`/api/favorites/${gameId}`, { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } });
+        isFav = false;
+      } else {
+        await fetch('/api/favorites', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+          body: JSON.stringify({ game_id: gameId })
+        });
+        isFav = true;
+      }
+      updateFavBtn();
+    } catch (e) {}
+  });
+
+  checkFavorite();
+
+  // ── PERMISOS RESEÑAS ─────────────────────────────────────
+  const ROLE_LEVELS = { reader: 1, editor: 2, admin: 3, superadmin: 4 };
+  const currentUser = JSON.parse(localStorage.getItem('gv-user') || 'null');
+  const isAdmin     = (ROLE_LEVELS[currentUser?.role] || 0) >= 3;
+
+  document.querySelectorAll('[data-review-id]').forEach(card => {
+    const isOwner = currentUser && currentUser.id === parseInt(card.dataset.reviewAuthor || '0');
+    if (isOwner || isAdmin) card.querySelector('.review-actions')?.classList.remove('hidden');
+  });
+
+  // ── LIKES / DISLIKES ─────────────────────────────────────
+  document.querySelectorAll('.like-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!token) { window.location.href = '/login'; return; }
+      const reviewId   = btn.dataset.review;
+      const isLike     = btn.dataset.type === 'like';
+      const card       = btn.closest('[data-review-id]');
+      const likeBtn    = card.querySelector('[data-type="like"]');
+      const dislikeBtn = card.querySelector('[data-type="dislike"]');
+      const currentVote = likeBtn.style.color === 'rgb(34, 197, 94)' ? 1
+                        : dislikeBtn.style.color === 'rgb(239, 68, 68)' ? 0 : null;
+      try {
+        let data;
+        if (currentVote === (isLike ? 1 : 0)) {
+          const res = await fetch(`/api/reviews/${reviewId}/like`, { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } });
+          data = await res.json();
+        } else {
+          const res = await fetch(`/api/reviews/${reviewId}/like`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+            body: JSON.stringify({ is_like: isLike })
+          });
+          data = await res.json();
+        }
+        if (data.likes !== undefined) {
+          likeBtn.querySelector('.like-count').textContent = data.likes;
+          dislikeBtn.querySelector('.dislike-count').textContent = data.dislikes;
+          if (data.userVote === 1) {
+            likeBtn.style.cssText    = 'background:rgba(34,197,94,0.15);border-color:rgba(34,197,94,0.4);color:#22c55e';
+            dislikeBtn.style.cssText = 'background:rgba(113,113,122,0.1);border-color:rgba(113,113,122,0.2);color:#71717a';
+          } else if (data.userVote === 0) {
+            likeBtn.style.cssText    = 'background:rgba(113,113,122,0.1);border-color:rgba(113,113,122,0.2);color:#71717a';
+            dislikeBtn.style.cssText = 'background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.4);color:#ef4444';
+          } else {
+            likeBtn.style.cssText    = 'background:rgba(113,113,122,0.1);border-color:rgba(113,113,122,0.2);color:#71717a';
+            dislikeBtn.style.cssText = 'background:rgba(113,113,122,0.1);border-color:rgba(113,113,122,0.2);color:#71717a';
+          }
+        }
+      } catch(e) {}
+    });
+  });
+
+  // ── EDITAR RESEÑA ─────────────────────────────────────────
+  document.querySelectorAll('.edit-review-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const card     = btn.closest('[data-review-id]');
+      const editForm = card.querySelector('.edit-form');
+      editForm?.classList.toggle('hidden');
+      const rating   = parseInt(btn.dataset.rating || '5');
+      let editRating = rating;
+      const editBtns = card.querySelectorAll('.edit-rating-btn');
+      editBtns.forEach((rb, idx) => {
+        rb.style.background  = idx < rating ? 'rgba(234,179,8,0.2)' : '';
+        rb.style.borderColor = idx < rating ? '#eab308' : '';
+        rb.style.color       = idx < rating ? '#eab308' : '';
+        rb.addEventListener('click', () => {
+          editRating = parseInt(rb.dataset.val || '1');
+          editBtns.forEach((b, i) => {
+            b.style.background  = i < editRating ? 'rgba(234,179,8,0.2)' : '';
+            b.style.borderColor = i < editRating ? '#eab308' : '';
+            b.style.color       = i < editRating ? '#eab308' : '';
+          });
+        });
+      });
+      card.querySelector('.save-edit-btn')?.addEventListener('click', async () => {
+        const content = card.querySelector('.edit-content')?.value?.trim();
+        const msg     = card.querySelector('.edit-msg');
+        try {
+          const res  = await fetch(`/api/reviews/${btn.dataset.review}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+            body: JSON.stringify({ rating: editRating, content })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            if (msg) { msg.textContent = '✅ Guardado'; msg.style.color = '#22c55e'; }
+            setTimeout(() => window.location.reload(), 800);
+          } else {
+            if (msg) { msg.textContent = data.error || 'Error'; msg.style.color = '#ef4444'; }
+          }
+        } catch(e) { if(msg) msg.textContent = 'Error de conexión'; }
+      });
+      card.querySelector('.cancel-edit-btn')?.addEventListener('click', () => editForm?.classList.add('hidden'));
+    });
+  });
+
+  // ── BORRAR RESEÑA ─────────────────────────────────────────
+  document.querySelectorAll('.delete-review-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('¿Seguro que quieres eliminar esta reseña?')) return;
+      try {
+        const res = await fetch(`/api/reviews/${btn.dataset.review}`, {
+          method: 'DELETE', headers: { Authorization: 'Bearer ' + token }
+        });
+        if (res.ok) btn.closest('[data-review-id]')?.remove();
+      } catch(e) {}
+    });
+  });
+
+  // ── FORMULARIO RESEÑA ────────────────────────────────────
+  const authMsg   = document.getElementById('review-auth-msg');
+  const formInner = document.getElementById('review-form-inner');
+
+  if (token) {
+    formInner?.classList.remove('hidden');
+    authMsg?.classList.add('hidden');
+  } else {
+    authMsg?.classList.remove('hidden');
+    formInner?.classList.add('hidden');
+  }
+
+  let selectedRating = 0;
+  const ratingBtns   = document.querySelectorAll('.rating-btn');
+
+  function updateRatingBtns() {
+    ratingBtns.forEach((b, i) => {
+      b.classList.toggle('bg-yellow-500/20',  i < selectedRating);
+      b.classList.toggle('border-yellow-500', i < selectedRating);
+      b.classList.toggle('text-yellow-400',   i < selectedRating);
+      b.style.background  = '';
+      b.style.borderColor = '';
+      b.style.color       = '';
+    });
+  }
+
+  ratingBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedRating = parseInt(btn.dataset.val || '0');
+      updateRatingBtns();
+    });
+  });
+
+  document.getElementById('review-form-inner')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('review-msg');
+    if (!selectedRating) { if(msg) msg.textContent = 'Selecciona una nota.'; return; }
+    const content = document.getElementById('review-content')?.value.trim();
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ game_id: gameId, rating: selectedRating, content })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (msg) { msg.textContent = '✅ Reseña publicada.'; msg.className = 'text-sm text-green-400'; }
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        if (msg) { msg.textContent = data.error ?? 'Error al publicar.'; msg.className = 'text-sm text-red-400'; }
+      }
+    } catch (e) {
+      if (msg) msg.textContent = 'Error de conexión.';
+    }
+  });
+</script>

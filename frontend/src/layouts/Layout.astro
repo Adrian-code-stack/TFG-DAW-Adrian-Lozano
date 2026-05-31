@@ -1,0 +1,309 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title:        string;
+  description?: string;
+  image?:       string;
+}
+
+const {
+  title,
+  description = "GameVault – El mejor catálogo de videojuegos en español. Descubre, reseña y guarda tus juegos favoritos.",
+  image,
+} = Astro.props;
+
+const SITE      = import.meta.env.SITE ?? "https://gamevault.es";
+const canonical = new URL(Astro.url.pathname, SITE).href;
+const ogImage   = image ?? `${SITE}/og-default.png`;
+---
+
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="index, follow" />
+
+  <script is:inline>
+    (function() {
+      const saved = localStorage.getItem("gv-theme");
+      if (saved === "light") document.documentElement.classList.add("light");
+    })();
+  </script>
+
+  <title>{title}</title>
+  <meta name="description"          content={description} />
+  <link rel="canonical"             href={canonical} />
+  <meta property="og:type"          content="website" />
+  <meta property="og:site_name"     content="GameVault" />
+  <meta property="og:url"           content={canonical} />
+  <meta property="og:title"         content={title} />
+  <meta property="og:description"   content={description} />
+  <meta property="og:image"         content={ogImage} />
+  <meta property="og:locale"        content="es_ES" />
+  <meta name="twitter:card"         content="summary_large_image" />
+  <meta name="twitter:title"        content={title} />
+  <meta name="twitter:description"  content={description} />
+  <meta name="twitter:image"        content={ogImage} />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+  <style is:inline>
+    /* ── MODO CLARO ──────────────────────────────────────── */
+    html.light { --color-bg:#f4f4f5; }
+    html.light .bg-zinc-950  { background-color:#f4f4f5!important }
+    html.light .bg-zinc-900  { background-color:#fff!important }
+    html.light .bg-zinc-800  { background-color:#e4e4e7!important }
+    html.light .bg-zinc-900\/60,.light .bg-zinc-900\/50 { background-color:rgba(255,255,255,.9)!important }
+    html.light .bg-zinc-950\/90,.light .bg-zinc-950\/80 { background-color:rgba(244,244,245,.95)!important }
+    html.light .text-white,.light .text-zinc-100 { color:#18181b!important }
+    html.light .text-zinc-200 { color:#27272a!important }
+    html.light .text-zinc-300 { color:#3f3f46!important }
+    html.light .text-zinc-400 { color:#52525b!important }
+    html.light .text-zinc-500 { color:#71717a!important }
+    html.light .text-zinc-600 { color:#a1a1aa!important }
+    html.light .border-zinc-800,.light .border-zinc-800\/50,.light .border-zinc-800\/60 { border-color:#d4d4d8!important }
+    html.light .border-zinc-700 { border-color:#e4e4e7!important }
+    html.light .hover\:bg-zinc-800:hover { background-color:#e4e4e7!important }
+    html.light .hover\:bg-zinc-900:hover { background-color:#f4f4f5!important }
+    html.light input,html.light textarea,html.light select { background-color:#fff!important; border-color:#d4d4d8!important; color:#18181b!important }
+    html.light input::placeholder,html.light textarea::placeholder { color:#a1a1aa!important }
+    html.light #mobile-menu { background-color:#ffffff!important; border-color:#d4d4d8!important }
+    html.light #mobile-menu a { color:#3f3f46!important }
+    html.light #mobile-menu a:hover { background-color:#f4f4f5!important; color:#18181b!important }
+
+    /* ── MENÚ MÓVIL ─────────────────────────────────────── */
+    #mobile-menu {
+      position: fixed; top: 64px; left: 0; right: 0;
+      background: #09090b; border-bottom: 1px solid #27272a; z-index: 49;
+      transform: translateY(-6px); opacity: 0; pointer-events: none;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+    #mobile-menu.open { transform: translateY(0); opacity: 1; pointer-events: auto; }
+
+    @media (min-width: 768px) {
+      #hamburger-btn { display: none !important; }
+      #desktop-nav   { display: flex !important; }
+      #mobile-menu   { display: none !important; }
+    }
+    @media (max-width: 767px) {
+      #desktop-nav   { display: none !important; }
+      #hamburger-btn { display: flex !important; }
+    }
+  </style>
+</head>
+
+<body class="bg-zinc-950 text-zinc-100 font-sans antialiased">
+
+  <!-- HEADER -->
+  <header role="banner" class="sticky top-0 z-50 border-b border-zinc-800/60 bg-zinc-950/90 backdrop-blur-md">
+    <nav role="navigation" aria-label="Navegación principal"
+      class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+
+      <!-- Logo -->
+      <a href="/" class="flex items-center gap-2 group shrink-0" aria-label="GameVault – Inicio">
+        <div class="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center group-hover:bg-violet-500 transition-colors shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="32" height="32">
+            <defs><linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#a855f7"/><stop offset="100%" style="stop-color:#7c3aed"/></linearGradient></defs>
+            <rect width="100" height="100" rx="22" ry="22" fill="#0a0a0b"/>
+            <rect x="8" y="8" width="84" height="84" rx="16" ry="16" fill="none" stroke="url(#grad)" stroke-width="4"/>
+            <rect x="4" y="28" width="8" height="6" rx="2" fill="url(#grad)"/>
+            <rect x="4" y="66" width="8" height="6" rx="2" fill="url(#grad)"/>
+            <path d="M31 44 Q31 38 38 38 L62 38 Q69 38 69 44 L69 56 Q69 64 62 64 Q57 64 54 60 L46 60 Q43 64 38 64 Q31 64 31 56 Z" fill="url(#grad)"/>
+            <rect x="37" y="47" width="4" height="10" rx="1" fill="#0a0a0b"/>
+            <rect x="34" y="50" width="10" height="4" rx="1" fill="#0a0a0b"/>
+            <circle cx="59" cy="48" r="2.2" fill="#0a0a0b"/>
+            <circle cx="63" cy="52" r="2.2" fill="#0a0a0b"/>
+            <circle cx="55" cy="52" r="2.2" fill="#0a0a0b"/>
+            <circle cx="59" cy="56" r="2.2" fill="#0a0a0b"/>
+          </svg>
+        </div>
+        <span class="text-lg font-black text-white tracking-tight">GameVault</span>
+      </a>
+
+      <!-- Nav desktop -->
+      <ul id="desktop-nav" class="items-center gap-1" role="list">
+        <li><a href="/categories" class="px-3.5 py-2 text-sm font-medium rounded-lg transition-colors text-zinc-400 hover:text-white hover:bg-zinc-800/60">Categorías</a></li>
+        <li><a href="/games"      class="px-3.5 py-2 text-sm font-medium rounded-lg transition-colors text-zinc-400 hover:text-white hover:bg-zinc-800/60">Juegos</a></li>
+        <li><a href="/articles"   class="px-3.5 py-2 text-sm font-medium rounded-lg transition-colors text-zinc-400 hover:text-white hover:bg-zinc-800/60">Artículos</a></li>
+        <li><a href="/contact"    class="px-3.5 py-2 text-sm font-medium rounded-lg transition-colors text-zinc-400 hover:text-white hover:bg-zinc-800/60">Contacto</a></li>
+
+        <!-- Separador -->
+        <li class="w-px h-5 bg-zinc-800 mx-1"></li>
+
+        <!-- Auth buttons (se actualizan con JS) -->
+        <li id="nav-login-btn">
+          <a href="/login" class="px-3.5 py-2 text-sm font-medium rounded-lg transition-colors text-zinc-400 hover:text-white hover:bg-zinc-800/60">
+            Iniciar sesión
+          </a>
+        </li>
+        <li id="nav-register-btn">
+          <a href="/register" class="px-3.5 py-2 text-sm font-semibold rounded-lg transition-colors bg-violet-600 hover:bg-violet-500 text-white">
+            Registrarse
+          </a>
+        </li>
+        <li id="nav-profile-btn" class="hidden">
+          <a href="/profile" id="nav-username" class="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 transition-all">
+            <div id="nav-avatar" class="w-5 h-5 rounded-full bg-violet-600 flex items-center justify-center text-white font-bold text-xs"></div>
+            <span id="nav-username-text"></span>
+          </a>
+        </li>
+
+        <li>
+          <button id="theme-toggle" aria-label="Cambiar tema" class="ml-1 w-9 h-9 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800/60 transition-colors">
+            <svg id="icon-sun"  class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m8.66-9h-1M4.34 12h-1m15.07-6.07-.7.7M5.63 18.37l-.7.7m12.74 0-.7-.7M5.63 5.63l-.7-.7M12 8a4 4 0 100 8 4 4 0 000-8z"/></svg>
+            <svg id="icon-moon" class="w-4 h-4 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
+          </button>
+        </li>
+      </ul>
+
+      <!-- Botones móvil -->
+      <div id="hamburger-btn" class="items-center gap-1">
+        <button id="theme-toggle-mobile" aria-label="Cambiar tema" class="w-9 h-9 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
+          <svg id="icon-sun-mobile"  class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m8.66-9h-1M4.34 12h-1m15.07-6.07-.7.7M5.63 18.37l-.7.7m12.74 0-.7-.7M5.63 5.63l-.7-.7M12 8a4 4 0 100 8 4 4 0 000-8z"/></svg>
+          <svg id="icon-moon-mobile" class="w-5 h-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
+        </button>
+        <button id="menu-btn" aria-label="Abrir menú" aria-expanded="false" class="w-9 h-9 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800/60 transition-colors">
+          <svg id="menu-icon-open"  class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          <svg id="menu-icon-close" class="w-5 h-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- MENÚ MÓVIL -->
+  <div id="mobile-menu" role="dialog" aria-label="Menú de navegación">
+    <ul class="px-4 py-3 space-y-1">
+      <li><a href="/categories" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-zinc-300 rounded-xl hover:bg-zinc-800/60 hover:text-white transition-colors">
+        <svg class="w-4 h-4 text-violet-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Categorías
+      </a></li>
+      <li><a href="/games" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-zinc-300 rounded-xl hover:bg-zinc-800/60 hover:text-white transition-colors">
+        <svg class="w-4 h-4 text-violet-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Juegos
+      </a></li>
+      <li><a href="/articles" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-zinc-300 rounded-xl hover:bg-zinc-800/60 hover:text-white transition-colors">
+        <svg class="w-4 h-4 text-violet-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Artículos
+      </a></li>
+      <li><a href="/contact" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-zinc-300 rounded-xl hover:bg-zinc-800/60 hover:text-white transition-colors">
+        <svg class="w-4 h-4 text-violet-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+        Contacto
+      </a></li>
+      <li class="border-t border-zinc-800 mt-2 pt-2">
+        <div id="mobile-auth-guest">
+          <a href="/login"    class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-zinc-300 rounded-xl hover:bg-zinc-800/60 hover:text-white transition-colors">Iniciar sesión</a>
+          <a href="/register" class="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-violet-400 rounded-xl hover:bg-violet-500/10 transition-colors">Registrarse</a>
+        </div>
+        <div id="mobile-auth-user" class="hidden">
+          <a href="/profile"  class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-zinc-300 rounded-xl hover:bg-zinc-800/60 hover:text-white transition-colors">
+            <svg class="w-4 h-4 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Mi perfil
+          </a>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <main id="main-content" role="main" tabindex="-1">
+    <slot />
+  </main>
+
+  <!-- FOOTER -->
+  <footer role="contentinfo" class="border-t border-zinc-800 mt-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+        <div>
+          <a href="/" class="text-base font-black text-white tracking-tight">GameVault</a>
+          <p class="text-xs text-zinc-600 mt-1">El catálogo definitivo de videojuegos</p>
+        </div>
+        <nav aria-label="Navegación secundaria">
+          <ul class="flex flex-wrap gap-x-5 gap-y-2" role="list">
+            {[
+              { href: "/games",       label: "Juegos" },
+              { href: "/categories",  label: "Categorías" },
+              { href: "/articles",    label: "Artículos" },
+              { href: "/contact",     label: "Contacto" },
+              { href: "/sitemap.xml", label: "Sitemap" },
+            ].map(link => (
+              <li><a href={link.href} class="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">{link.label}</a></li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+      <div class="mt-8 pt-6 border-t border-zinc-800/60">
+        <p class="text-xs text-zinc-700 text-center">© {new Date().getFullYear()} GameVault</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const html       = document.documentElement;
+    const menuBtn    = document.getElementById("menu-btn");
+    const mobileMenu = document.getElementById("mobile-menu");
+    const iconOpen   = document.getElementById("menu-icon-open");
+    const iconClose  = document.getElementById("menu-icon-close");
+
+    // ── AUTH STATE ──────────────────────────────────────────────────────
+    const user = JSON.parse(localStorage.getItem("gv-user") || "null");
+
+    if (user) {
+      document.getElementById("nav-login-btn")?.classList.add("hidden");
+      document.getElementById("nav-register-btn")?.classList.add("hidden");
+      const profileBtn = document.getElementById("nav-profile-btn");
+      profileBtn?.classList.remove("hidden");
+      const avatar = document.getElementById("nav-avatar");
+      if (avatar) avatar.textContent = user.username[0].toUpperCase();
+      const usernameText = document.getElementById("nav-username-text");
+      if (usernameText) usernameText.textContent = user.username;
+      document.getElementById("mobile-auth-guest")?.classList.add("hidden");
+      document.getElementById("mobile-auth-user")?.classList.remove("hidden");
+    }
+
+    // ── HAMBURGUESA ─────────────────────────────────────────────────────
+    let menuOpen = false;
+    menuBtn?.addEventListener("click", () => {
+      menuOpen = !menuOpen;
+      mobileMenu?.classList.toggle("open", menuOpen);
+      iconOpen?.classList.toggle("hidden",  menuOpen);
+      iconClose?.classList.toggle("hidden", !menuOpen);
+      menuBtn.setAttribute("aria-expanded", String(menuOpen));
+    });
+    mobileMenu?.querySelectorAll("a").forEach(a => {
+      a.addEventListener("click", () => {
+        menuOpen = false;
+        mobileMenu.classList.remove("open");
+        iconOpen?.classList.remove("hidden");
+        iconClose?.classList.add("hidden");
+      });
+    });
+
+    // ── TOGGLE TEMA ─────────────────────────────────────────────────────
+    const iconSun   = document.getElementById("icon-sun");
+    const iconMoon  = document.getElementById("icon-moon");
+    const iconSunM  = document.getElementById("icon-sun-mobile");
+    const iconMoonM = document.getElementById("icon-moon-mobile");
+
+    function applyTheme(isLight: boolean) {
+      html.classList.toggle("light", isLight);
+      iconSun?.classList.toggle("hidden",   isLight);
+      iconMoon?.classList.toggle("hidden",  !isLight);
+      iconSunM?.classList.toggle("hidden",  isLight);
+      iconMoonM?.classList.toggle("hidden", !isLight);
+    }
+    applyTheme(html.classList.contains("light"));
+
+    function toggleTheme() {
+      const nowLight = !html.classList.contains("light");
+      applyTheme(nowLight);
+      localStorage.setItem("gv-theme", nowLight ? "light" : "dark");
+    }
+    document.getElementById("theme-toggle")?.addEventListener("click", toggleTheme);
+    document.getElementById("theme-toggle-mobile")?.addEventListener("click", toggleTheme);
+  </script>
+</body>
+</html>

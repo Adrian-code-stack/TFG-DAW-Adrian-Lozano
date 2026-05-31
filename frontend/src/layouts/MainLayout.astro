@@ -1,0 +1,18 @@
+---
+import "../styles/global.css";
+
+const { title = "GameVault", description = "Tu biblioteca personal de videojuegos" } = Astro.props;
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+  </head>
+
+  <body class="min-h-screen bg-neutral-950 text-neutral-50">
+    <slot />
+  </body>
+</html>

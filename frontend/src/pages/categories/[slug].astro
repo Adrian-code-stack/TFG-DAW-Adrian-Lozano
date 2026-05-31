@@ -1,0 +1,114 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { fetchJSON } from "../../lib/api";
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+
+let cat: any = null;
+let games: any[] = [];
+
+try {
+  const res = await fetchJSON("/api/categories/" + slug);
+  cat = res?.data ?? null;
+} catch (e) {}
+
+if (cat) {
+  try {
+    const gRes = await fetchJSON("/api/games?category=" + slug);
+    games = (gRes?.data ?? []).map((g: any) => ({
+      title:        g.title,
+      slug:         g.slug,
+      description:  g.description ?? "",
+      release_date: g.release_date ?? null,
+      cover_url:    g.cover_url ?? null,
+      rawg_rating:  g.rawg_rating ?? null,
+      category:     g.category,
+    }));
+  } catch (e) {}
+}
+
+function formatDate(dateStr: string | null): string | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("es-ES", { year: "numeric", month: "short", day: "numeric" });
+}
+
+const pageTitle = cat ? "GameVault | " + cat.name : "GameVault | Categoría no encontrada";
+---
+
+<Layout title={pageTitle}>
+  <div class="min-h-screen bg-zinc-950 text-zinc-100">
+
+    {!cat && (
+      <div class="max-w-2xl mx-auto px-6 py-32 text-center">
+        <p class="text-6xl mb-6">📂</p>
+        <h1 class="text-3xl font-bold text-white mb-8">Categoría no encontrada</h1>
+        <a href="/categories" class="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white font-semibold px-6 py-3 rounded-xl transition-all text-sm">← Todas las categorías</a>
+      </div>
+    )}
+
+    {cat && (
+      <div>
+        <div class="border-b" style={"background:" + cat.bgColor + ";border-color:" + cat.borderColor}>
+          <div class="max-w-6xl mx-auto px-6 py-16">
+            <a href="/categories" class="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-violet-400 transition-colors mb-6">
+              ← Todas las categorías
+            </a>
+            <div class="flex items-center gap-4 mb-3">
+              <span class="text-5xl">{cat.icon}</span>
+              <h1 class="text-5xl font-extrabold tracking-tight text-white">{cat.name}</h1>
+            </div>
+            {cat.description && <p class="text-zinc-400 text-lg max-w-2xl mt-3">{cat.description}</p>}
+            <p class="text-sm mt-4 font-semibold" style={"color:" + cat.accentColor}>
+              {games.length} juego{games.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+        </div>
+
+        <div class="max-w-6xl mx-auto px-6 py-12">
+          {games.length === 0 ? (
+            <div class="text-center py-24 border border-dashed border-zinc-800 rounded-2xl">
+              <p class="text-4xl mb-4">🎮</p>
+              <p class="text-zinc-400 font-medium">Sin juegos en esta categoría todavía</p>
+              <p class="text-zinc-600 text-sm mt-1">Próximamente añadiremos más títulos</p>
+            </div>
+          ) : (
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {games.map((game) => {
+                const date   = formatDate(game.release_date);
+                const accent = game.category?.accentColor ?? "#a1a1aa";
+                const bg     = game.category?.bgColor     ?? "rgba(113,113,122,0.1)";
+                const border = game.category?.borderColor ?? "rgba(113,113,122,0.2)";
+                return (
+                  <a href={"/games/" + game.slug} class="group flex flex-col bg-zinc-900 border border-zinc-800/80 rounded-2xl overflow-hidden hover:-translate-y-1 hover:shadow-2xl transition-all duration-200">
+                    {game.cover_url ? (
+                      <div class="h-40 overflow-hidden bg-zinc-800">
+                        <img src={game.cover_url} alt={game.title} loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      </div>
+                    ) : (
+                      <div class="h-40 bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
+                        <span class="text-4xl opacity-20">🎮</span>
+                      </div>
+                    )}
+                    <div class="h-0.5 w-full opacity-0 group-hover:opacity-100 transition-opacity" style={"background:" + accent}></div>
+                    <div class="flex flex-col flex-1 p-5">
+                      <h3 class="text-base font-bold text-zinc-100 group-hover:text-violet-400 transition-colors line-clamp-2 mb-2 leading-snug">{game.title}</h3>
+                      {game.description && <p class="text-sm text-zinc-500 line-clamp-2 leading-relaxed flex-1">{game.description}</p>}
+                      <div class="mt-4 pt-3.5 border-t border-zinc-800 flex items-center justify-between">
+                        {date && <span class="text-xs text-zinc-600 font-medium">{date}</span>}
+                        {game.rawg_rating && <span class="text-xs font-bold text-yellow-400">★ {game.rawg_rating}</span>}
+                      </div>
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+  </div>
+</Layout>

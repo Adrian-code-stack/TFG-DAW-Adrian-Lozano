@@ -1,0 +1,107 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { fetchJSON } from "../../lib/api";
+
+let pageRes     = { data: null };
+let articlesRes = { data: [] };
+
+try { pageRes     = await fetchJSON("/api/article-page"); } catch (e) { console.error(e); }
+try { articlesRes = await fetchJSON("/api/articles");      } catch (e) { console.error(e); }
+
+const p  = pageRes?.data ?? {};
+const ui = {
+  pageTag:           p.pageTag,
+  pageTitle:         p.pageTitle,
+  pageSubtitle:      p.pageSubtitle,
+  emptyTitle:        p.emptyTitle,
+  emptySub:          p.emptySub,
+  emptyIcon:         p.emptyIcon,
+  coverPlaceholder:  p.coverPlaceholder,
+  readingTimeSuffix: p.readingTimeSuffix,
+};
+
+const articles = (articlesRes?.data ?? []).map((a: any) => ({
+  title:       a.title,
+  slug:        a.slug,
+  excerpt:     a.excerpt ?? "",
+  author:      a.author ?? null,
+  readingTime: a.readingTime ?? null,
+  publishedAt: a.publishedAt ?? null,
+  coverUrl:    a.cover_url ?? null,
+}));
+
+function formatDate(dateStr: string | null): string | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("es-ES", { year: "numeric", month: "short", day: "numeric" });
+}
+---
+
+<Layout title={"GameVault | " + (ui.pageTitle ?? "Artículos")}>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Outfit', sans-serif; }
+    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  </style>
+
+  <div class="min-h-screen bg-zinc-950 text-zinc-100">
+
+    <div class="border-b border-zinc-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-16">
+        {ui.pageTag && <p class="text-xs font-semibold tracking-widest text-violet-400 uppercase mb-3">{ui.pageTag}</p>}
+        {ui.pageTitle && <h1 class="text-5xl font-extrabold tracking-tight text-white mb-3">{ui.pageTitle}</h1>}
+        {ui.pageSubtitle && <p class="text-zinc-400 text-lg">{ui.pageSubtitle}</p>}
+      </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto px-6 py-16">
+      {articles.length === 0 ? (
+        <div class="text-center py-24">
+          {ui.emptyIcon && <p class="text-5xl mb-6">{ui.emptyIcon}</p>}
+          {ui.emptyTitle && <p class="text-lg font-semibold text-white mb-2">{ui.emptyTitle}</p>}
+          {ui.emptySub && <p class="text-zinc-500 text-sm">{ui.emptySub}</p>}
+        </div>
+      ) : (
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {articles.map((article) => {
+            const date = formatDate(article.publishedAt);
+            return (
+              <a href={"/articles/" + article.slug}
+                class="group flex flex-col bg-zinc-900 border border-zinc-800/80 rounded-2xl overflow-hidden hover:-translate-y-1 hover:shadow-2xl transition-all duration-200">
+                {article.coverUrl ? (
+                  <div class="h-44 overflow-hidden bg-zinc-800">
+                    <img src={article.coverUrl} alt={article.title} loading="lazy" decoding="async"
+                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  </div>
+                ) : (
+                  <div class="h-44 bg-gradient-to-br from-violet-900/30 to-zinc-900 flex items-center justify-center">
+                    <span class="text-4xl opacity-30">{ui.coverPlaceholder}</span>
+                  </div>
+                )}
+                <div class="h-0.5 w-full bg-violet-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                <div class="flex flex-col flex-1 p-5">
+                  <h2 class="text-base font-bold text-zinc-100 group-hover:text-violet-400 transition-colors line-clamp-2 mb-2 leading-snug">{article.title}</h2>
+                  {article.excerpt && <p class="text-sm text-zinc-500 line-clamp-3 leading-relaxed flex-1">{article.excerpt}</p>}
+                  <div class="mt-4 pt-3.5 border-t border-zinc-800 flex items-center justify-between gap-2">
+                    {article.author && <span class="text-xs text-zinc-500 truncate">{article.author}</span>}
+                    <div class="flex items-center gap-3 shrink-0">
+                      {article.readingTime && ui.readingTimeSuffix && (
+                        <span class="text-xs text-zinc-600 font-medium flex items-center gap-1">
+                          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                          {article.readingTime} {ui.readingTimeSuffix}
+                        </span>
+                      )}
+                      {date && <span class="text-xs text-zinc-600 font-medium">{date}</span>}
+                    </div>
+                  </div>
+                </div>
+              </a>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  </div>
+</Layout>

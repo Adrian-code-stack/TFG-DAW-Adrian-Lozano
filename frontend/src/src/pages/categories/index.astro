@@ -1,0 +1,73 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { fetchJSON } from "../../lib/api";
+
+let pageRes       = { data: null };
+let categoriesRes = { data: [] };
+
+try { pageRes       = await fetchJSON("/api/categories-page"); } catch (e) { console.error(e); }
+try { categoriesRes = await fetchJSON("/api/categories");      } catch (e) { console.error(e); }
+
+const p  = pageRes?.data ?? {};
+const ui = {
+  exploreLabel: p.exploreLabel,
+  pageTitle:    p.pageTitle,
+  pageSubtitle: p.pageSubtitle,
+  emptyText:    p.emptyText,
+};
+
+const categories = (categoriesRes?.data ?? []).map((c: any) => ({
+  name:        c.name,
+  slug:        c.slug,
+  description: c.description ?? "",
+  icon:        c.icon ?? "",
+  accentColor: c.accentColor,
+  bgColor:     c.bgColor,
+  borderColor: c.borderColor,
+}));
+---
+
+<Layout title={"GameVault | " + (ui.pageTitle ?? "Categorías")}>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Outfit', sans-serif; }
+    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  </style>
+
+  <div class="min-h-screen bg-zinc-950 text-zinc-100">
+
+    <div class="border-b border-zinc-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-16">
+        {ui.exploreLabel && <p class="text-xs font-semibold tracking-widest text-violet-400 uppercase mb-3">{ui.exploreLabel}</p>}
+        <h1 class="text-5xl font-extrabold tracking-tight text-white mb-3">{ui.pageTitle ?? "Categorías"}</h1>
+        {ui.pageSubtitle && <p class="text-zinc-400 text-lg">{ui.pageSubtitle}</p>}
+      </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto px-6 py-16">
+      {categories.length === 0 ? (
+        <p class="text-zinc-500 text-center py-24">{ui.emptyText ?? "No hay categorías todavía."}</p>
+      ) : (
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {categories.map((cat) => (
+            <a href={"/categories/" + cat.slug}
+              class="group flex flex-col p-6 rounded-2xl border transition-all duration-200 hover:-translate-y-1 hover:shadow-xl"
+              style={"background:" + cat.bgColor + "; border-color:" + cat.borderColor}>
+              <div class="flex items-center gap-3 mb-3">
+                <span class="text-3xl">{cat.icon}</span>
+                <span class="text-lg font-bold" style={"color:" + cat.accentColor}>{cat.name}</span>
+              </div>
+              {cat.description && <p class="text-sm text-zinc-400 line-clamp-2 leading-relaxed">{cat.description}</p>}
+              <div class="mt-4 flex items-center gap-1 text-xs font-semibold" style={"color:" + cat.accentColor}>
+                Ver juegos
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                </svg>
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+</Layout>

@@ -1,0 +1,148 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="GameVault | Mi perfil">
+  <div class="min-h-screen bg-zinc-950 text-zinc-100">
+    <div class="max-w-6xl mx-auto px-6 py-12">
+
+      <div id="not-logged" class="hidden text-center py-32">
+        <h1 class="text-2xl font-bold text-white mb-4">Necesitas iniciar sesión</h1>
+        <div class="flex justify-center gap-3">
+          <a href="/login"    class="bg-violet-600 hover:bg-violet-500 text-white font-semibold px-6 py-3 rounded-xl text-sm transition-all">Iniciar sesión</a>
+          <a href="/register" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold px-6 py-3 rounded-xl text-sm border border-zinc-700 transition-all">Registrarse</a>
+        </div>
+      </div>
+
+      <div id="profile-content" class="hidden">
+        <div class="flex items-center justify-between mb-10">
+          <div class="flex items-center gap-4">
+            <div id="avatar" class="w-14 h-14 rounded-2xl bg-violet-600 flex items-center justify-center text-white font-black text-2xl"></div>
+            <div>
+              <h1 id="username-display" class="text-2xl font-extrabold text-white"></h1>
+              <p id="role-display" class="text-sm text-zinc-500 capitalize"></p>
+            </div>
+          </div>
+          <button id="btn-logout" class="text-sm text-red-400 hover:text-red-300 border border-red-500/30 hover:border-red-400/50 px-4 py-2 rounded-xl transition-all">
+            Cerrar sesión
+          </button>
+        </div>
+
+        <!-- Favoritos -->
+        <section>
+          <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
+            <svg class="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 24 24"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+            Mis favoritos
+          </h2>
+          <div id="favorites-loading" class="text-zinc-500 text-sm">Cargando...</div>
+          <div id="favorites-empty" class="hidden text-center py-12 border border-dashed border-zinc-800 rounded-2xl">
+            <p class="text-zinc-400">Aún no tienes favoritos</p>
+            <a href="/games" class="text-violet-400 text-sm mt-2 inline-block hover:text-violet-300">Explorar juegos →</a>
+          </div>
+          <div id="favorites-grid" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+        </section>
+
+        <!-- Reseñas -->
+        <section class="mt-12">
+          <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
+            <svg class="w-5 h-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+            Mis reseñas
+          </h2>
+          <div id="reviews-loading" class="text-zinc-500 text-sm">Cargando...</div>
+          <div id="reviews-empty" class="hidden text-center py-12 border border-dashed border-zinc-800 rounded-2xl">
+            <p class="text-zinc-400">Aún no has escrito reseñas</p>
+            <a href="/games" class="text-violet-400 text-sm mt-2 inline-block hover:text-violet-300">Explorar juegos →</a>
+          </div>
+          <div id="reviews-list" class="hidden space-y-3"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  const token = localStorage.getItem("gv-token");
+  const user  = JSON.parse(localStorage.getItem("gv-user") || "null");
+
+  const notLogged      = document.getElementById("not-logged");
+  const profileContent = document.getElementById("profile-content");
+
+  if (!token || !user) {
+    notLogged?.classList.remove("hidden");
+  } else {
+    profileContent?.classList.remove("hidden");
+    document.getElementById("avatar").textContent = user.username[0].toUpperCase();
+    document.getElementById("username-display").textContent = user.username;
+    document.getElementById("role-display").textContent = user.role;
+
+    // Logout
+    document.getElementById("btn-logout")?.addEventListener("click", () => {
+      localStorage.removeItem("gv-token");
+      localStorage.removeItem("gv-user");
+      window.location.href = "/";
+    });
+
+    // Cargar favoritos
+    async function loadFavorites() {
+      const loadEl  = document.getElementById("favorites-loading");
+      const emptyEl = document.getElementById("favorites-empty");
+      const gridEl  = document.getElementById("favorites-grid");
+      try {
+        const res  = await fetch("/api/favorites", { headers: { Authorization: "Bearer " + token } });
+        const data = await res.json();
+        loadEl?.classList.add("hidden");
+        if (!data.data?.length) {
+          emptyEl?.classList.remove("hidden");
+          return;
+        }
+        gridEl?.classList.remove("hidden");
+        gridEl.innerHTML = data.data.map((fav: any) => {
+          const g = fav.game;
+          return `
+            <a href="/games/${g.slug}" class="group bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden hover:-translate-y-1 transition-all">
+              ${g.cover_url ? `<div class="h-32 overflow-hidden bg-zinc-800"><img src="${g.cover_url}" alt="${g.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"/></div>` : '<div class="h-32 bg-zinc-800 flex items-center justify-center text-4xl">🎮</div>'}
+              <div class="p-4">
+                <h3 class="text-sm font-bold text-zinc-100 group-hover:text-violet-400 transition-colors line-clamp-2">${g.title}</h3>
+                ${g.rawg_rating ? `<span class="text-xs text-yellow-400 font-bold mt-1 block">★ ${g.rawg_rating}</span>` : ""}
+              </div>
+            </a>`;
+        }).join("");
+      } catch (e) {
+        loadEl.textContent = "Error cargando favoritos.";
+      }
+    }
+
+    // Cargar reseñas
+    async function loadReviews() {
+      const loadEl  = document.getElementById("reviews-loading");
+      const emptyEl = document.getElementById("reviews-empty");
+      const listEl  = document.getElementById("reviews-list");
+      try {
+        const res  = await fetch("/api/reviews/user/me", { headers: { Authorization: "Bearer " + token } });
+        const data = await res.json();
+        loadEl?.classList.add("hidden");
+        if (!data.data?.length) {
+          emptyEl?.classList.remove("hidden");
+          return;
+        }
+        listEl?.classList.remove("hidden");
+        listEl.innerHTML = data.data.map((r: any) => `
+          <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 flex items-center justify-between gap-4">
+            <div>
+              <a href="/games/${r.game_slug}" class="font-bold text-zinc-100 hover:text-violet-400 transition-colors">${r.game_title}</a>
+              ${r.content ? `<p class="text-sm text-zinc-500 mt-1 line-clamp-2">${r.content}</p>` : ""}
+            </div>
+            <div class="text-right shrink-0">
+              <span class="text-yellow-400 font-bold text-lg">★ ${r.rating}/10</span>
+              <p class="text-xs text-zinc-600 mt-1">${new Date(r.created_at).toLocaleDateString('es-ES')}</p>
+            </div>
+          </div>`).join("");
+      } catch (e) {
+        loadEl.textContent = "Error cargando reseñas.";
+      }
+    }
+
+    loadFavorites();
+    loadReviews();
+  }
+</script>
